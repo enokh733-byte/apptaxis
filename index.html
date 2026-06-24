@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Costos — Iniciar sesión</title>
+  <style>
+    :root {
+      --verde:   #2d7a2d;
+      --amarillo:#f5c400;
+      --rojo:    #dc2626;
+      --gris-bg: #f4f6f9;
+      --blanco:  #ffffff;
+      --texto:   #1f2937;
+      --borde:   #e5e7eb;
+      --radio:   10px;
+      --sombra:  0 4px 24px rgba(0,0,0,.10);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e8f5e9 0%, #fffde7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-card {
+      background: var(--blanco);
+      border-radius: var(--radio);
+      box-shadow: var(--sombra);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo p {
+      margin-top: 4px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .login-logo small {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--borde);
+      border-radius: 7px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--verde);
+      box-shadow: 0 0 0 3px rgba(45,122,45,.12);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 11px;
+      background: var(--verde);
+      color: var(--blanco);
+      border: none;
+      border-radius: 7px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+
+    .btn-login:hover:not(:disabled) { opacity: .88; }
+    .btn-login:disabled { opacity: .6; cursor: not-allowed; }
+
+    .error-msg {
+      display: none;
+      color: var(--rojo);
+      font-size: 13px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #fee2e2;
+      border-radius: 6px;
+      border-left: 3px solid var(--rojo);
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" width="160" height="90">
+      <path d="M60,8 A32,32 0 1,0 60,72" fill="none" stroke="#2d7a2d" stroke-width="14" stroke-linecap="round"/>
+      <path d="M60,8 A32,32 0 0,1 92,40 L60,40 Z" fill="#f5c400"/>
+      <text x="80" y="65" font-family="Arial,sans-serif" font-weight="800" font-size="15" text-anchor="middle" letter-spacing="1">
+        <tspan fill="#2d7a2d">SAFRES</tspan><tspan fill="#f5c400">CO</tspan>
+      </text>
+    </svg>
+    <p>Control de Costos</p>
+    <small>Packing del Carmen SAC</small>
+  </div>
+
+  <form id="loginForm">
+    <div class="form-group">
+      <label>Usuario</label>
+      <input type="text" id="username" placeholder="admin" autocomplete="username" required>
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+    <div id="errorMsg" class="error-msg"></div>
+    <button type="submit" class="btn-login" id="btnLogin">Ingresar</button>
+  </form>
+</div>
+
+<script>
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwp8JRbhvtXJHcc2aMBOBc1qWKC2DI8CNwgDfBRGFke60aQwCTOkJyHJwGbh1QTLLQrWA/exec';
+
+  const Auth = {
+    KEY: 'taxi_pdc_usuario',
+    save(usuario)   { localStorage.setItem(this.KEY, JSON.stringify(usuario)); },
+    isLoggedIn()    { return !!localStorage.getItem(this.KEY); },
+    getUsuario()    { const r = localStorage.getItem(this.KEY); return r ? JSON.parse(r) : null; },
+    logout()        { localStorage.removeItem(this.KEY); window.location.href = 'index.html'; }
+  };
+
+  if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn      = document.getElementById('btnLogin');
+    const errorMsg = document.getElementById('errorMsg');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    btn.disabled = true;
+    btn.textContent = 'Ingresando...';
+    errorMsg.style.display = 'none';
+
+    try {
+      const res  = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'login', username, password })
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        Auth.save(data.usuario);
+        window.location.href = 'dashboard.html';
+      } else {
+        errorMsg.textContent   = data.error || 'Credenciales incorrectas';
+        errorMsg.style.display = 'block';
+      }
+    } catch (err) {
+      errorMsg.textContent   = 'Error de conexión con el servidor.';
+      errorMsg.style.display = 'block';
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Ingresar';
+    }
+  });
+</script>
+</body>
+</html>
